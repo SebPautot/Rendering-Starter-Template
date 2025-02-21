@@ -10,13 +10,14 @@ int main()
 
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA, GL_ONE);
+    glEnable(GL_DEPTH_TEST);
 
     // glClearColor(0.f, 1.f, 1.f, .5f);
     // glClear(GL_COLOR_BUFFER_BIT);
 
     auto const shader = gl::Shader{{
-        .vertex = gl::ShaderSource::File{"res/vertex.glsl"},
-        .fragment = gl::ShaderSource::File{"res/fragment.glsl"},
+        .vertex = gl::ShaderSource::File{"res/defaultVertex3D.glsl"},
+        .fragment = gl::ShaderSource::File{"res/defaultFragment.glsl"},
     }};
 
     shader.bind();
@@ -41,19 +42,21 @@ int main()
 
     while (gl::window_is_open())
     {
-        glEnable(GL_BLEND);
-        glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA, GL_ONE);
+        
 
         currentTime = gl::time_in_seconds();
         deltaTime = currentTime - previousTime;
         glm::mat4 const view_matrix = camera.view_matrix();
 
+        glm::mat4 const projection_matrix = glm::infinitePerspective(glm::radians(45.f) /*field of view in radians*/, gl::framebuffer_aspect_ratio() /*aspect ratio*/, 0.001f /*near plane*/);
+        const auto view_projection_matrix = projection_matrix * view_matrix;
+
         glClearColor(0.f, 1.f, 1.f, 1.f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Rendu à chaque frame
 
-        /* Weird ass cube moving on 2D plane start */
+    /* Weird ass cube moving on 2D plane start */ // https: // youtu.be/GBXSUTgJRD4
 
         // for (float i = 0; i < 30; i++)
         // {
@@ -77,30 +80,47 @@ int main()
 
         /* Camera & matrices start */
 
-        glm::mat4 const projection_matrix = glm::infinitePerspective(glm::radians(45.f) /*field of view in radians*/, gl::framebuffer_aspect_ratio() /*aspect ratio*/, 0.001f /*near plane*/);
-
         auto triangle_mesh = gl::Mesh{
             {.vertex_buffers = {{
-                 .layout = {gl::VertexAttribute::Position2D{0}},
+                 .layout = {gl::VertexAttribute::Position3D{0}},
                  .data = {
-                     -0.5f, -0.5f,
-                     +0.5f, -0.5f,
-                     +0.5f, +0.5f,
-                     -0.5f, +0.5f},
+                     -0.5f, -0.5f, 0.5f,
+                     +0.5f, -0.5f, 0.5f,
+                     +0.5f, +0.5f, 0.5f,
+                     -0.5f, +0.5f, 0.5f,
+                     -0.5f, -0.5f, -0.5f,
+                     +0.5f, -0.5f, -0.5f,
+                     +0.5f, +0.5f, -0.5f,
+                     -0.5f, +0.5f, -0.5f},
              }},
-             .index_buffer = {0, 1, 2, 0, 2, 3}}};
+             .index_buffer = {
+                0, 1, 2,
+                0, 2, 3,
+
+                4, 5, 6,
+                4, 6, 7,
+
+                1, 5, 6,
+                1, 6, 2,
+
+                0, 4, 7,
+                0, 7, 3,
+
+                3, 2, 6,
+                3, 7, 6,
+                
+                0, 1, 5,
+                0, 5, 4
+            }}};
 
         shader.set_uniform("color", glm::vec4{1, 1, 1, 1});
         shader.set_uniform("aspect_ratio", gl::framebuffer_aspect_ratio());
         shader.set_uniform("time", currentTime);
-        shader.set_uniform("view_projection_matrix", view_matrix * projection_matrix);
+        shader.set_uniform("view_projection_matrix", view_projection_matrix);
         triangle_mesh.draw();
 
-        //TODO
         // /*glm::mat4 const rotation = glm::rotate(glm::mat4{1.f}, gl::time_in_seconds() /*angle de la rotation*/, glm::vec3{0.f, 0.f, 1.f} /* axe autour duquel on tourne */);*/
 
-            /* Camera & matrices end */
-            // printf("%f \n", 60 / deltaTime);
 
         previousTime = gl::time_in_seconds();
     }

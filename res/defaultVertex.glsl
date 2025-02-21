@@ -8,6 +8,6 @@ uniform mat4 view_projection_matrix;
 void main()
 {
     vec2 position = in_position;
-    gl_Position = view_projection_matrix * vec4(position.x / aspect_ratio, position.y, 0., 1.);
+    gl_Position = view_projection_matrix * vec4(position.x, position.y, 0., 1.);
 
 }
