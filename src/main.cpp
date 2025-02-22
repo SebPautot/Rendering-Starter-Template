@@ -97,6 +97,9 @@ int main()
         currentTime = gl::time_in_seconds();
         deltaTime = currentTime - previousTime;
 
+        glClearColor(1.f, 0.f, 0.f, 1.f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
         render_target.render(
             [&]()
             {
@@ -173,8 +176,7 @@ int main()
                 
             });
 
-        glClearColor(0.f, 1.f, 1.f, 1.f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        
 
         post_processing.bind();
 
@@ -188,11 +190,13 @@ int main()
                          +1.f, +1.f,
                          -1.f, +1.f},
                  }},
-             .index_buffer = {0, 1, 2, 0, 2, 3}}};
+             .index_buffer = {0, 1, 2, 0, 2, 3}
+            }
+        };
 
         post_processing.set_uniform("color", glm::vec4{1, 1, 1, 1});
         post_processing.set_uniform("texture_sample", render_target.color_texture(0));
-        post_processing.set_uniform("aspect_ratio", 1);
+        post_processing.set_uniform("aspect_ratio", gl::framebuffer_aspect_ratio());
         screen_mesh.draw();
 
         previousTime = gl::time_in_seconds();
