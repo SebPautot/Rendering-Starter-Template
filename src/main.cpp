@@ -218,8 +218,11 @@ int main()
                 shader.set_uniform("time", currentTime);
                 shader.set_uniform("view_projection_matrix", view_projection_matrix);
                 shader.set_uniform("texture_sample", texture);
+                shader.set_uniform("light_color", glm::vec3(1, 0, 1));
                 shader.set_uniform("point_lights[0]", glm::vec4(0, 0, 10, 200));
                 shader.set_uniform("point_lights[1]", glm::vec4(0, 0, 0, 1));
+                shader.set_uniform("point_lights_color[0]", glm::vec4(0, 1, 0, 2));
+                shader.set_uniform("point_lights_color[1]", glm::vec4(1, 0, 0, 1));
                 shader.set_uniform("light_count", 2);
                 shader.set_uniform("light_direction", glm::vec3(0, 0, 1));
                 shader.set_uniform("light_intensity", 0.f);
@@ -227,7 +230,7 @@ int main()
                 shader.set_uniform("normal_matrix", normal_matrix);
                 boat_mesh.draw();
 
-                // /*glm::mat4 const rotation = glm::rotate(glm::mat4{1.f}, gl::time_in_seconds() /*angle de la rotation*/, glm::vec3{0.f, 0.f, 1.f} /* axe autour duquel on tourne */);*/
+                
             });
 
         post_processing.bind();
