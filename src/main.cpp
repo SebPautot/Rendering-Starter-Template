@@ -2,6 +2,49 @@
 #include "iostream"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
+
+auto load_mesh(std::filesystem::path const &path) -> gl::Mesh
+{
+    // On lit le fichier avec tinyobj
+    auto reader = tinyobj::ObjReader{};
+    reader.ParseFromFile(gl::make_absolute_path(path).string(), {});
+
+    if (!reader.Error().empty())
+        throw std::runtime_error("Failed to read 3D model:\n" + reader.Error());
+    if (!reader.Warning().empty())
+        std::cout << "Warning while reading 3D model:\n" + reader.Warning();
+
+    // On met tous les attributs dans un tableau
+    auto vertices = std::vector<float>{};
+    for (auto const &shape : reader.GetShapes())
+    {
+        for (auto const &idx : shape.mesh.indices)
+        {
+            // Position
+            vertices.push_back(reader.GetAttrib().vertices[3 * idx.vertex_index + 0]);
+            vertices.push_back(reader.GetAttrib().vertices[3 * idx.vertex_index + 1]);
+            vertices.push_back(reader.GetAttrib().vertices[3 * idx.vertex_index + 2]);
+
+            // UV
+            vertices.push_back(reader.GetAttrib().texcoords[2 * idx.texcoord_index + 0]);
+            vertices.push_back(reader.GetAttrib().texcoords[2 * idx.texcoord_index + 1]);
+
+            // Normale
+            vertices.push_back(reader.GetAttrib().normals[3 * idx.normal_index + 0]);
+            vertices.push_back(reader.GetAttrib().normals[3 * idx.normal_index + 1]);
+            vertices.push_back(reader.GetAttrib().normals[3 * idx.normal_index + 2]);
+        };
+    }
+
+    auto mesh = gl::Mesh{
+        {.vertex_buffers = {{
+             .layout = {gl::VertexAttribute::Position3D{0}, gl::VertexAttribute::UV{1}, gl::VertexAttribute::Normal3D{2}},
+             .data = vertices,
+         }}}};
+
+    return mesh;
+}
+
 int main()
 {
     // Initialisation
@@ -25,11 +68,11 @@ int main()
         .fragment = gl::ShaderSource::File{"res/post_processing.glsl"},
     }};
 
-    
-
     float previousTime = 0.f;
     float deltaTime = 0.f;
     float currentTime = 0.f;
+
+    gl::Mesh boat_mesh = load_mesh("./res/boat/fourareen.obj");
 
     // Texture
 
@@ -90,6 +133,7 @@ int main()
               if (e.width_in_pixels != 0 && e.height_in_pixels != 0) // OpenGL crash si on tente de faire une render target avec une taille de 0
                   render_target.resize(e.width_in_pixels, e.height_in_pixels);
           }}});
+          
 
     while (gl::window_is_open())
     {
@@ -139,44 +183,41 @@ int main()
 
                 shader.bind();
 
-                auto triangle_mesh = gl::Mesh{
-                    {.vertex_buffers = {{
-                         .layout = {gl::VertexAttribute::Position3D{0}},
-                         .data = {
-                             -0.5f, -0.5f, 0.5f,
-                             +0.5f, -0.5f, 0.5f,
-                             +0.5f, +0.5f, 0.5f,
-                             -0.5f, +0.5f, 0.5f,
-                             -0.5f, -0.5f, -0.5f,
-                             +0.5f, -0.5f, -0.5f,
-                             +0.5f, +0.5f, -0.5f,
-                             -0.5f, +0.5f, -0.5f},
-                     }},
-                     .index_buffer = {0, 1, 2, 0, 2, 3,
+                // auto triangle_mesh = gl::Mesh{
+                //     {.vertex_buffers = {{
+                //          .layout = {gl::VertexAttribute::Position3D{0}},
+                //          .data = {
+                //              -0.5f, -0.5f, 0.5f,
+                //              +0.5f, -0.5f, 0.5f,
+                //              +0.5f, +0.5f, 0.5f,
+                //              -0.5f, +0.5f, 0.5f,
+                //              -0.5f, -0.5f, -0.5f,
+                //              +0.5f, -0.5f, -0.5f,
+                //              +0.5f, +0.5f, -0.5f,
+                //              -0.5f, +0.5f, -0.5f},
+                //      }},
+                //      .index_buffer = {0, 1, 2, 0, 2, 3,
 
-                                      4, 5, 6, 4, 6, 7,
+                //                       4, 5, 6, 4, 6, 7,
 
-                                      1, 5, 6, 1, 6, 2,
+                //                       1, 5, 6, 1, 6, 2,
 
-                                      0, 4, 7, 0, 7, 3,
+                //                       0, 4, 7, 0, 7, 3,
 
-                                      3, 2, 6, 3, 7, 6,
+                //                       3, 2, 6, 3, 7, 6,
 
-                                      0, 1, 5, 0, 5, 4}}};
+                //                       0, 1, 5, 0, 5, 4}}};
+
 
                 shader.set_uniform("color", glm::vec4{1.f, 1.f, 1.f, 1.f});
                 shader.set_uniform("aspect_ratio", gl::framebuffer_aspect_ratio());
                 shader.set_uniform("time", currentTime);
                 shader.set_uniform("view_projection_matrix", view_projection_matrix);
                 shader.set_uniform("texture_sample", texture);
-                triangle_mesh.draw();
+                boat_mesh.draw();
 
                 // /*glm::mat4 const rotation = glm::rotate(glm::mat4{1.f}, gl::time_in_seconds() /*angle de la rotation*/, glm::vec3{0.f, 0.f, 1.f} /* axe autour duquel on tourne */);*/
-
-                
             });
-
-        
 
         post_processing.bind();
 
@@ -190,9 +231,7 @@ int main()
                          +1.f, +1.f,
                          -1.f, +1.f},
                  }},
-             .index_buffer = {0, 1, 2, 0, 2, 3}
-            }
-        };
+             .index_buffer = {0, 1, 2, 0, 2, 3}}};
 
         post_processing.set_uniform("color", glm::vec4{1, 1, 1, 1});
         post_processing.set_uniform("texture_sample", render_target.color_texture(0));
